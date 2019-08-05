@@ -1,0 +1,15 @@
+---
+
+- hosts:         all
+  become:        yes
+  become_user:   root
+  become_method: sudo
+
+  tasks:
+
+  - name: exec user-data everytime at boot
+    replace:
+      path: /etc/cloud/cloud.cfg
+      regexp: '^ - scripts-user$'
+      replace: ' - [scripts-user, always ]'
+
