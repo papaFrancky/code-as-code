@@ -1,15 +1,54 @@
 ---
 
-- hosts:         all
+- hosts:         localhost
   become:        yes
   become_user:   root
   become_method: sudo
 
   tasks:
 
+
+  - name: full update
+    yum:
+      name:             '*'
+      state:            latest
+
   - name: exec user-data everytime at boot
     replace:
-      path: /etc/cloud/cloud.cfg
-      regexp: '^ - scripts-user$'
-      replace: ' - [scripts-user, always ]'
+      path:             /etc/cloud/cloud.cfg
+      regexp:           '^ - scripts-user$'
+      replace:          ' - [scripts-user, always ]'
+
+
+  - name: check wether pip is already installed
+    command:            which pip
+    changed_when:       false
+    failed_when:        false
+    register: pip_installed
+
+
+  - debug:
+      msg:              "pip_installed = {{ pip_installed.rc }}"
+
+
+  - name: retrieve get-pip.py script
+    get_url:
+      url:              https://bootstrap.pypa.io/get-pip.py
+      dest:             ~/get-pip.py
+    when: pip_installed.rc != 0
+
+
+  - name: install pip
+    shell:              python ~/get-pip.py
+    when:  pip_installed.rc != 0
+
+  - name: install ansible and dependencies
+    pip:
+      name:             "{{ item }}"
+    loop:
+      - ansible
+      - boto3
+      - paramiko
+      - cryptography
+
 
