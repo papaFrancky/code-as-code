@@ -13,6 +13,7 @@
       name:             '*'
       state:            latest
 
+
   - name: exec user-data everytime at boot
     replace:
       path:             /etc/cloud/cloud.cfg
@@ -31,24 +32,26 @@
       msg:              "pip_installed = {{ pip_installed.rc }}"
 
 
-  - name: retrieve get-pip.py script
-    get_url:
-      url:              https://bootstrap.pypa.io/get-pip.py
-      dest:             ~/get-pip.py
+  - name: install ansible
+    block:
+
+    - name: retrieve get-pip.py script
+      get_url:
+        url:              https://bootstrap.pypa.io/get-pip.py
+        dest:             ~/get-pip.py
+
+    - name: install pip
+      shell:              python ~/get-pip.py
+
+    - name: install ansible and dependencies
+      pip:
+        name:             "{{ item }}"
+      loop:
+        - ansible
+        - boto3
+        - paramiko
+        - cryptography
+
     when: pip_installed.rc != 0
-
-
-  - name: install pip
-    shell:              python ~/get-pip.py
-    when:  pip_installed.rc != 0
-
-  - name: install ansible and dependencies
-    pip:
-      name:             "{{ item }}"
-    loop:
-      - ansible
-      - boto3
-      - paramiko
-      - cryptography
 
 
