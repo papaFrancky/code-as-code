@@ -5,7 +5,22 @@
   become_user:   root
   become_method: sudo
 
+  vars:
+    dns_domain_name:    "codeadcode.net"
+    dns_ttl:            60
+
   tasks:
+
+
+  - name: update dns entry
+    route53:
+      region:           "{{ ansible_ec2_placement_region }}"
+      state:            present
+      ttl:              "{{ dns_ttl }}"
+      zone:             "{{ dns_domain_name }}"
+      record:           "bastion.{{ dns_domain_name }}"
+      value:            "{{ ansible_ec2_public_ipv4 }}"
+      wait:             no
 
 
   - name: full update
@@ -53,5 +68,25 @@
         - cryptography
 
     when: pip_installed.rc != 0
+
+
+  - name: install apache webserver
+    yum:
+      name:             httpd
+      state:            present
+
+
+  - name: create apache's index page
+    template:
+      src:              index.html.j2
+      dest:             /var/www/html/index.html
+      backup:           yes
+
+ 
+  - name: enable and start apache service
+    service:
+      name:             httpd
+      state:            started
+      enabled:          yes
 
 
