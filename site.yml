@@ -1,0 +1,106 @@
+---
+
+- hosts:         localhost
+  become:        yes
+  become_user:   root
+  become_method: sudo
+
+  vars:
+    dns_domain_name:    "codeascode.net"
+    dns_ttl:            60
+
+  tasks:
+
+
+  - name: testmetadata modile
+    ec2_metadata_facts:
+
+
+  - debug:
+      msg: "ansible_ec2_placement_region = {{ ansible_ec2_placement_region }}"
+
+
+  - debug:
+      msg: "ansible_ec2_public_ipv4 = {{ ansible_ec2_public_ipv4 }}"
+
+
+  - name: update dns entry
+    route53:
+      state:            present
+      ttl:              "{{ dns_ttl }}"
+      zone:             "{{ dns_domain_name }}"
+      record:           "bastion.{{ dns_domain_name }}"
+      type:             A
+      value:            "{{ ansible_ec2_public_ipv4 }}"
+      overwrite:        yes
+      wait:             no
+
+
+  - name: full update
+    yum:
+      name:             '*'
+      state:            latest
+
+
+  - name: exec user-data everytime at boot
+    replace:
+      path:             /etc/cloud/cloud.cfg
+      regexp:           '^ - scripts-user$'
+      replace:          ' - [scripts-user, always ]'
+
+
+  - name: check wether pip is already installed
+    command:            which pip
+    changed_when:       false
+    failed_when:        false
+    register: pip_installed
+
+
+  - debug:
+      msg:              "pip_installed = {{ pip_installed.rc }}"
+
+
+  - name: install ansible
+    block:
+
+    - name: retrieve get-pip.py script
+      get_url:
+        url:              https://bootstrap.pypa.io/get-pip.py
+        dest:             ~/get-pip.py
+
+    - name: install pip
+      shell:              python ~/get-pip.py
+
+    - name: install ansible and dependencies
+      pip:
+        name:             "{{ item }}"
+      loop:
+        - ansible
+        - boto
+        - boto3
+        - paramiko
+        - cryptography
+
+    when: pip_installed.rc != 0
+
+
+  - name: install apache webserver
+    yum:
+      name:             httpd
+      state:            present
+
+
+  - name: create apache's index page
+    template:
+      src:              index.html.j2
+      dest:             /var/www/html/index.html
+      backup:           yes
+
+ 
+  - name: enable and start apache service
+    service:
+      name:             httpd
+      state:            started
+      enabled:          yes
+
+
