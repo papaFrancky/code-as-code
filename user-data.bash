@@ -17,7 +17,8 @@ instanceName=$( aws ec2 describe-instances						\
 installAnsible() {
   curl -s https://bootstrap.pypa.io/get-pip.py -o get-pip.py
   sudo python get-pip.py
-  sudo pip install ansible boto3 paramiko cryptography
+  sudo pip install --upgrade pip
+  sudo pip install ansible boto  boto3 paramiko cryptography
 }
 
 # Retrieve the ansible code from the S3 bucket

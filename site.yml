@@ -6,20 +6,33 @@
   become_method: sudo
 
   vars:
-    dns_domain_name:    "codeadcode.net"
+    dns_domain_name:    "codeascode.net"
     dns_ttl:            60
 
   tasks:
 
 
+  - name: testmetadata modile
+    ec2_metadata_facts:
+
+
+  - debug:
+      msg: "ansible_ec2_placement_region = {{ ansible_ec2_placement_region }}"
+
+
+  - debug:
+      msg: "ansible_ec2_public_ipv4 = {{ ansible_ec2_public_ipv4 }}"
+
+
   - name: update dns entry
     route53:
-      region:           "{{ ansible_ec2_placement_region }}"
       state:            present
       ttl:              "{{ dns_ttl }}"
       zone:             "{{ dns_domain_name }}"
       record:           "bastion.{{ dns_domain_name }}"
+      type:             A
       value:            "{{ ansible_ec2_public_ipv4 }}"
+      overwrite:        yes
       wait:             no
 
 
@@ -63,6 +76,7 @@
         name:             "{{ item }}"
       loop:
         - ansible
+        - boto
         - boto3
         - paramiko
         - cryptography
