@@ -59,7 +59,7 @@
     replace:
       path:             /etc/cloud/cloud.cfg
       regexp:           '^ - scripts-user$'
-      replace:          ' - [scripts-user, always ]'
+      replace:          ' - [scripts-user, always]'
 
 
   - name: install apache webserver
