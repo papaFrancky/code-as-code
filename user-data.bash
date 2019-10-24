@@ -23,11 +23,13 @@ installAnsible() {
 
 # Retrieve the ansible code from the S3 bucket
 getAnsibleCode() {
-  aws s3 sync s3://demo-infra-s3-bucket/${instanceName} ~/. --region=${awsRegion}
+  mkdir /install
+  aws s3 sync s3://demo-infra-s3-bucket/${instanceName} /install/. --region=${awsRegion}
 }
 
 # Run the ansible playbook 
 runAnsibleCode () {
+  cd /install
   ansible-playbook -c local site.yml
 }
 
