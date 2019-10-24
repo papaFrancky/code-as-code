@@ -1,5 +1,4 @@
 *.swp
 *.bkp*
 .gitconfig
-.git/*
-.git
+*/.git/*
