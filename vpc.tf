@@ -86,7 +86,7 @@ resource "aws_route_table" "public" {
     vpc_id  = "${aws_vpc.main.id}"
  
     tags = {
-        "Name" = "${{var.environment}-public"
+        "Name" = "${var.environment}-public"
     }
 }
 
@@ -108,7 +108,7 @@ resource "aws_route_table" "private" {
     vpc_id  = "${aws_vpc.main.id}"
  
     tags = {
-        "Name" = "${{var.environment}-private-${element(var.availability_zones, count.index)}"
+        "Name" = "${var.environment}-private-${element(var.availability_zones, count.index)}"
     }
 }
 
