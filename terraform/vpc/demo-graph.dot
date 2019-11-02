@@ -1,0 +1,59 @@
+digraph {
+	compound = "true"
+	newrank = "true"
+	subgraph "root" {
+		"[root] aws_eip.nat" [label = "aws_eip.nat", shape = "box"]
+		"[root] aws_internet_gateway.igw" [label = "aws_internet_gateway.igw", shape = "box"]
+		"[root] aws_nat_gateway.demo" [label = "aws_nat_gateway.demo", shape = "box"]
+		"[root] aws_route.igw" [label = "aws_route.igw", shape = "box"]
+		"[root] aws_route.nat" [label = "aws_route.nat", shape = "box"]
+		"[root] aws_route_table.private" [label = "aws_route_table.private", shape = "box"]
+		"[root] aws_route_table.public" [label = "aws_route_table.public", shape = "box"]
+		"[root] aws_route_table_association.private" [label = "aws_route_table_association.private", shape = "box"]
+		"[root] aws_route_table_association.public" [label = "aws_route_table_association.public", shape = "box"]
+		"[root] aws_subnet.private" [label = "aws_subnet.private", shape = "box"]
+		"[root] aws_subnet.public" [label = "aws_subnet.public", shape = "box"]
+		"[root] aws_vpc.demo" [label = "aws_vpc.demo", shape = "box"]
+		"[root] data.aws_availability_zones.all" [label = "data.aws_availability_zones.all", shape = "box"]
+		"[root] output.demo_vpc_id" [label = "output.demo_vpc_id", shape = "note"]
+		"[root] provider.aws" [label = "provider.aws", shape = "diamond"]
+		"[root] var.vpc_cidr" [label = "var.vpc_cidr", shape = "note"]
+		"[root] var.vpc_name" [label = "var.vpc_name", shape = "note"]
+		"[root] aws_eip.nat" -> "[root] data.aws_availability_zones.all"
+		"[root] aws_internet_gateway.igw" -> "[root] aws_vpc.demo"
+		"[root] aws_nat_gateway.demo" -> "[root] aws_eip.nat"
+		"[root] aws_nat_gateway.demo" -> "[root] aws_subnet.public"
+		"[root] aws_route.igw" -> "[root] aws_internet_gateway.igw"
+		"[root] aws_route.igw" -> "[root] aws_route_table.public"
+		"[root] aws_route.nat" -> "[root] aws_nat_gateway.demo"
+		"[root] aws_route.nat" -> "[root] aws_route_table.private"
+		"[root] aws_route_table.private" -> "[root] aws_vpc.demo"
+		"[root] aws_route_table.private" -> "[root] data.aws_availability_zones.all"
+		"[root] aws_route_table.public" -> "[root] aws_vpc.demo"
+		"[root] aws_route_table_association.private" -> "[root] aws_route_table.private"
+		"[root] aws_route_table_association.private" -> "[root] aws_subnet.private"
+		"[root] aws_route_table_association.public" -> "[root] aws_route_table.public"
+		"[root] aws_route_table_association.public" -> "[root] aws_subnet.public"
+		"[root] aws_subnet.private" -> "[root] aws_vpc.demo"
+		"[root] aws_subnet.private" -> "[root] data.aws_availability_zones.all"
+		"[root] aws_subnet.public" -> "[root] aws_vpc.demo"
+		"[root] aws_subnet.public" -> "[root] data.aws_availability_zones.all"
+		"[root] aws_vpc.demo" -> "[root] provider.aws"
+		"[root] aws_vpc.demo" -> "[root] var.vpc_cidr"
+		"[root] aws_vpc.demo" -> "[root] var.vpc_name"
+		"[root] data.aws_availability_zones.all" -> "[root] provider.aws"
+		"[root] meta.count-boundary (EachMode fixup)" -> "[root] aws_route.igw"
+		"[root] meta.count-boundary (EachMode fixup)" -> "[root] aws_route.nat"
+		"[root] meta.count-boundary (EachMode fixup)" -> "[root] aws_route_table_association.private"
+		"[root] meta.count-boundary (EachMode fixup)" -> "[root] aws_route_table_association.public"
+		"[root] meta.count-boundary (EachMode fixup)" -> "[root] output.demo_vpc_id"
+		"[root] output.demo_vpc_id" -> "[root] aws_vpc.demo"
+		"[root] provider.aws (close)" -> "[root] aws_route.igw"
+		"[root] provider.aws (close)" -> "[root] aws_route.nat"
+		"[root] provider.aws (close)" -> "[root] aws_route_table_association.private"
+		"[root] provider.aws (close)" -> "[root] aws_route_table_association.public"
+		"[root] root" -> "[root] meta.count-boundary (EachMode fixup)"
+		"[root] root" -> "[root] provider.aws (close)"
+	}
+}
+

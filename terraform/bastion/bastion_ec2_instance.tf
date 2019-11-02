@@ -23,10 +23,7 @@
 #        All ICMP - IPV4    All         N/A           0.0.0.0/0    All ICMP IPv4 from anywhere
 #
 
-# Provider AWS region Paris
-provider "aws" {
-  region = "eu-west-3"
-}
+
 
 variable "http_port" {
   description = "TCP port used by the web server"

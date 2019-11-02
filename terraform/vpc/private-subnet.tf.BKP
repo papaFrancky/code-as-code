@@ -1,0 +1,81 @@
+# PRIVATE SUBNET
+# --------------
+
+resource "aws_subnet" "private" {
+    count                   = "${length(data.aws_availability_zones.all.names)}"
+    vpc_id                  = "${aws_vpc.demo.id}"
+    cidr_block              = "${cidrsubnet(var.vpc_cidr, 8, 201 + count.index )}"
+    map_public_ip_on_launch = false
+    
+    tags = {
+        "Name" = "${var.vpc_name}-private-${element(data.aws_availability_zones.all.names, count.index)}"
+    }
+}
+
+
+
+# NAT GATEWAYS
+# ------------
+
+resource "aws_eip" "nat" {
+  count = "${length(data.aws_availability_zones.all.names)}"
+  vpc   = true
+
+  tags = {
+    "Name" = "eip-nat-${var.vpc_name}-${element(data.aws_availability_zones.all.names, count.index)}"
+  }   
+}
+
+resource "aws_nat_gateway" "demo" {
+    count           = "${length(data.aws_availability_zones.all.names)}"
+    subnet_id       = "${element(aws_subnet.public.*.id, count.index)}"
+    allocation_id   = "${element(aws_eip.nat.*.id, count.index)}"
+
+    tags = {
+        "Name" = "nat-${var.vpc_name}-${element(data.aws_availability_zones.all.names, count.index)}"
+    }
+}
+
+
+
+# PRIVATE ROUTE TABLE
+# -------------------
+
+resource "aws_route_table" "private" {
+    count   = "${length(data.aws_availability_zones.all.names)}"
+    vpc_id  = "${aws_vpc.demo.id}"
+ 
+    tags = {
+        "Name" = "${var.vpc_name}-private-${element(data.aws_availability_zones.all.names, count.index)}"
+    }
+}
+
+resource "aws_route" "nat" {
+    count                   = "${length(data.aws_availability_zones.all.names)}"
+    route_table_id          = "${element(aws_route_table.private.*.id, count.index)}"
+    destination_cidr_block  = "0.0.0.0/0"
+    nat_gateway_id          = "${element(aws_nat_gateway.demo.*.id, count.index)}"
+}
+
+resource "aws_route_table_association" "private" {
+    count           = "${length(data.aws_availability_zones.all.names)}"
+    subnet_id       = "${element(aws_subnet.private.*.id, count.index)}"
+    route_table_id  = "${element(aws_route_table.private.*.id, count.index)}"
+}
+
+
+
+# OUTPUT VARIABLES 
+# ----------------
+
+output "private_subnet_ids" {
+    value = "${aws_subnet.private.*.id}"
+}
+
+output "private_subnets_names" {
+  value = "${aws_subnet.private.*.tags.Name}"
+}
+
+output "private_cidrs" {
+    value = "${aws_subnet.private.*.cidr_block}"
+}

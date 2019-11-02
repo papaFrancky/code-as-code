@@ -1,0 +1,170 @@
+# VPC
+# ---
+
+variable "vpc_name" {
+  description = "VPC name"
+  type        = "string"
+  default     = "demo"
+}
+
+variable "vpc_cidr" {
+    description = "VPC cidr block"
+    type        = "string"
+    default     = "10.0.0.0/16"
+}
+
+resource "aws_vpc" "demo" {
+  cidr_block            = "${var.vpc_cidr}"
+  enable_dns_support    = true
+  enable_dns_hostnames  = true
+
+  tags = {
+    "Name" = "${var.vpc_name}"
+  }
+}
+
+
+
+# SUBNETS
+# -------
+
+data "aws_availability_zones" "all" {}
+
+resource "aws_subnet" "public" {
+    count                   = "${length(data.aws_availability_zones.all.names)}"
+    vpc_id                  = "${aws_vpc.demo.id}"
+    cidr_block              = "${cidrsubnet(var.vpc_cidr, 8, 101 + count.index)}"
+    map_public_ip_on_launch = true
+    
+    tags = {
+        "Name" = "public-${element(data.aws_availability_zones.all.names, count.index)}"
+    }
+}
+
+
+resource "aws_subnet" "private" {
+    count                   = "${length(data.aws_availability_zones.all.names)}"
+    vpc_id                  = "${aws_vpc.demo.id}"
+    cidr_block              = "${cidrsubnet(var.vpc_cidr, 8, 201 + count.index )}"
+    map_public_ip_on_launch = false
+    
+    tags = {
+        "Name" = "private-${element(data.aws_availability_zones.all.names, count.index)}"
+    }
+}
+
+
+
+# INTERNET GATEWAY
+# ----------------
+
+resource "aws_internet_gateway" "igw" {
+  vpc_id = "${aws_vpc.demo.id}"
+
+  tags = {
+        "Name" = "internet-gateway"
+    }
+}
+
+
+
+# NAT GATEWAYS
+# ------------
+
+#data "aws_eip" "nat" {}
+
+resource "aws_eip" "nat" {
+  count = "${length(data.aws_availability_zones.all.names)}"
+  vpc   = true
+
+  tags = {
+    "Name" = "eip-nat-${element(data.aws_availability_zones.all.names, count.index)}"
+  }   
+}
+
+resource "aws_nat_gateway" "demo" {
+    count           = "${length(data.aws_availability_zones.all.names)}"
+    subnet_id       = "${element(aws_subnet.public.*.id, count.index)}"
+    allocation_id   = "${element(aws_eip.nat.*.id, count.index)}"
+
+    tags = {
+        "Name" = "nat-${element(data.aws_availability_zones.all.names, count.index)}"
+    }
+}
+
+
+
+# PUBLIC ROUTE TABLE
+# ------------------
+
+resource "aws_route_table" "public" {
+    vpc_id  = "${aws_vpc.demo.id}"
+ 
+    tags = {
+        "Name" = "${var.vpc_name}-public"
+    }
+}
+
+resource "aws_route" "igw" {
+    route_table_id          = "${aws_route_table.public.id}"
+    destination_cidr_block  = "0.0.0.0/0"
+    gateway_id              = "${aws_internet_gateway.igw.id}"
+}
+
+resource "aws_route_table_association" "public" {
+    count           = "${length(data.aws_availability_zones.all.names)}"
+    subnet_id       = "${element(aws_subnet.public.*.id, count.index)}"
+    route_table_id  = "${aws_route_table.public.id}"
+}
+
+
+
+# PRIVATE ROUTE TABLE
+# -------------------
+
+resource "aws_route_table" "private" {
+    count   = "${length(data.aws_availability_zones.all.names)}"
+    vpc_id  = "${aws_vpc.demo.id}"
+ 
+    tags = {
+        "Name" = "${var.vpc_name}-private-${element(data.aws_availability_zones.all.names, count.index)}"
+    }
+}
+
+resource "aws_route" "nat" {
+    count                   = "${length(data.aws_availability_zones.all.names)}"
+    route_table_id          = "${element(aws_route_table.private.*.id, count.index)}"
+    destination_cidr_block  = "0.0.0.0/0"
+    nat_gateway_id          = "${element(aws_nat_gateway.demo.*.id, count.index)}"
+}
+
+resource "aws_route_table_association" "private" {
+    count           = "${length(data.aws_availability_zones.all.names)}"
+    subnet_id       = "${element(aws_subnet.private.*.id, count.index)}"
+    route_table_id  = "${element(aws_route_table.private.*.id, count.index)}"
+}
+
+
+
+# OUTPUT VARIABLES
+
+
+output "demo_vpc_id" {
+  value = "${aws_vpc.demo.id}"
+}
+
+output "public_subnets_ids" {
+    value = "${aws_subnet.public.*.id}"
+}
+
+output "public_cidrs" {
+    value = "${aws_subnet.public.*.cidr_block}"
+}
+
+output "private_subnet_ids" {
+    value = "${aws_subnet.private.*.id}"
+}
+
+output "private_cidrs" {
+    value = "${aws_subnet.private.*.cidr_block}"
+}

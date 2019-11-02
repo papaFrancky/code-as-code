@@ -2,3 +2,7 @@
 *.bkp*
 .gitconfig
 */.git/*
+
+*.terraform
+*.tfstate
+.tfstate.backup
