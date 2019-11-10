@@ -23,6 +23,7 @@ installAnsible() {
 
 # Retrieve the ansible code from the S3 bucket
 getAnsibleCode() {
+  [ -d /install ] && /bin/rm -rf /install
   mkdir /install
   aws s3 sync s3://demo-infra-s3-bucket/${instanceName} /install/. --region=${awsRegion}
 }
@@ -38,5 +39,5 @@ runAnsibleCode () {
 
 installAnsible
 getAnsibleCode
-runAnsibleCode
+#runAnsibleCode
 

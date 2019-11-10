@@ -1,10 +1,16 @@
 #!/bin/bash
 
+# How to create an EC2 instance using the AWS CLI 
 
 # AWS credentials
-aws_access_key_id=
-aws_secret_access_key=
-export aws_access_key_id aws_secret_access_key
+# AWS_DEFAULT_REGION=<your_aws_region>
+# AWS_ACCESS_KEY_ID=<your_access_key_id>
+# AWS_SECRET_ACCESS_KEY=<your_secret_access_key>
+# export AWS_DEFAULT_REGION AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY
+
+
+# VARIABLES
+# ---------
 
 VPC_Name="demo"
 Region="eu-west-3"
@@ -19,19 +25,19 @@ Key_Name="bastion"
 # ----------------
 
 Policies_List=" route53-upsert-records
-                s3-bastion-access
                 ec2-describe-instances
-                ec2-describe-tags"
+                ec2-describe-tags
+                s3-${Instance_Name}-access"
 
 
-# creation du role ec2 pour l'instance
-aws iam create-role               \
-  --region ${Region}              \
-  --role-name "${Instance_Name}"  \
+# IAM role creation for the EC2 instance
+aws iam create-role                                     \
+  --region ${Region}                                    \
+  --role-name "${Instance_Name}"                        \
   --assume-role-policy-document file://files/policy_ec2_trust.json
 
 
-# definition des policies liees au role de l'instance
+# Policies creation
 for Policy in ${Policies_List}; do
   aws iam put-role-policy           \
     --region ${Region}              \
@@ -41,13 +47,13 @@ for Policy in ${Policies_List}; do
 done
 
 
-# creation de l'instance-profile
+# Instance profile creation
   aws iam create-instance-profile \
     --region ${Region}            \
     --instance-profile-name "${Instance_Name}" 
 
 
-# rattachement du role a l'instance-profile
+# Role attachment to the instance profile
   aws iam add-role-to-instance-profile          \
     --region ${Region}                          \
     --instance-profile-name "${Instance_Name}"  \
@@ -58,7 +64,7 @@ done
 # SECURITY-GROUP
 # --------------
 
-# recuperation de l'id du vpc
+# VPC ID retrieval
 VPC_Id=$( aws ec2 describe-vpcs                           \
             --region ${Region}                            \
             --filters Name=tag:Name,Values="${VPC_Name}"  \
@@ -66,7 +72,7 @@ VPC_Id=$( aws ec2 describe-vpcs                           \
             --output text                                 )
 
 
-# creation du security-group
+# Security group creation
 aws ec2 create-security-group       \
   --region ${Region}                \
   --group-name ${Instance_Name}     \
@@ -74,7 +80,7 @@ aws ec2 create-security-group       \
   --vpc-id ${VPC_Id}
 
 
-# recuperation de l'id du security-group
+# Security-group ID retrieval
 SG_Id=$(  aws ec2 describe-security-groups                                                  \
             --region ${Region}                                                              \
             --filters Name=vpc-id,Values=${VPC_Id} Name=group-name,Values=${Instance_Name}  \
@@ -82,14 +88,14 @@ SG_Id=$(  aws ec2 describe-security-groups                                      
             --output=text )
 
 
-# Apposition du tag 'Name'
+# Tagging the security group's name
 aws ec2 create-tags     \
   --region ${Region}    \
   --resources ${SG_Id}  \
   --tags Key=Name,Value=${Instance_Name}
 
 
-# Creation des regles de firewall en entree
+# Adding firewall rules to the security group
 aws ec2 authorize-security-group-ingress --region ${Region} --group-id ${SG_Id} --protocol tcp  --port 22 --cidr 0.0.0.0/0
 aws ec2 authorize-security-group-ingress --region ${Region} --group-id ${SG_Id} --protocol tcp  --port 80 --cidr 0.0.0.0/0
 aws ec2 authorize-security-group-ingress --region ${Region} --group-id ${SG_Id} --protocol icmp --port -1 --cidr 0.0.0.0/0
@@ -97,45 +103,50 @@ aws ec2 authorize-security-group-ingress --region ${Region} --group-id ${SG_Id} 
 
 
 # EC2 INSTANCE CREATION
+# ---------------------
 
+# AMI ID
 AMI_Id=$( aws ssm get-parameters                                                  \
             --region ${Region}                                                    \
             --names /aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2 \
             --query 'Parameters[].Value'                                          \
             --output text )
 
-
+# VPC subnet ID
 Subnet_Id=$( aws ec2 describe-subnets               \
             --region ${Region}                      \
             --filters Name=tag:Name,Values="${AZ}"  \
             --query Subnets[].SubnetId              \
             --output text )
 
-aws ec2 run-instances                           \
-  --region ${Region}                            \
-  --count 1                                     \
-  --instance-type ${Instance_Type}              \
-  --image-id ${AMI_Id}                          \
-  --security-group-ids ${SG_Id}                 \
-  --key-name ${Key_Name}                        \
-  --subnet-id ${Subnet_Id}                      \
-  --associate-public-ip-address                 \
-  --iam-instance-profile Name=${Instance_Name}  \
-  --user-data file://files/user-data.bash       \
-  --tag-specifications 'ResourceType=instance,Tags=[{Key=cost-center,Value=cc123}]' 'ResourceType=volume,Tags=[{Key=cost-center,Value=cc123}]' 
-  #--tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=${Instance_Name}}]" 
 
-  # aws ec2 describe-instances --query Reservations[].Instances[].InstanceId --filters "Name=tag:Name,Values=awscli-bastion"
+Make_Instance () {
 
-Instance_Id=$(  aws ec2 describe-instances --query Reservations[].Instances[].InstanceId | \
-                sort | tail -1 | sed 's/["|,]//g' | awk '{print $1}' )
-
-# Apposition du tag 'Name'
-aws ec2 create-tags     \
-  --region ${Region}    \
-  --resources ${Instance_Id}  \
-  --tags Key=Name,Value=${Instance_Name}
-
+  # Create EC2 instance
+  aws ec2 run-instances                           \
+    --region ${Region}                            \
+    --count 1                                     \
+    --instance-type ${Instance_Type}              \
+    --image-id ${AMI_Id}                          \
+    --security-group-ids ${SG_Id}                 \
+    --key-name ${Key_Name}                        \
+    --subnet-id ${Subnet_Id}                      \
+    --associate-public-ip-address                 \
+    --iam-instance-profile Name=${Instance_Name}  \
+    --user-data file://files/user-data.bash       
   
+  # Get the ID of the latest-launched EC2 instance
+  Instance_Id=$(  aws ec2 describe-instances                                                  \
+                  --region ${Region}                                                          \
+                    --query 'sort_by(Reservations[].Instances[],&LaunchTime)[-1].InstanceId'  \
+                    --output=text )
 
+  # Associate the tag 'Name' to the instance
+  aws ec2 create-tags           \
+    --region ${Region}          \
+    --resources ${Instance_Id}  \
+    --tags Key=Name,Value=${Instance_Name}
 
+}
+
+Make_Instance
