@@ -7,6 +7,7 @@ resource "aws_subnet" "public" {
     count                   = "${length(data.aws_availability_zones.all.names)}"
     vpc_id                  = "${aws_vpc.demo.id}"
     cidr_block              = "${cidrsubnet(var.vpc_cidr, 8, 101 + count.index)}"
+    availability_zone	    = "${element(data.aws_availability_zones.all.names, count.index)}"
     map_public_ip_on_launch = true
     
     tags = {
