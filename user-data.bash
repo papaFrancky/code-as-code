@@ -39,5 +39,5 @@ runAnsibleCode () {
 
 installAnsible
 getAnsibleCode
-#runAnsibleCode
+runAnsibleCode
 
