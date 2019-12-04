@@ -1,21 +1,21 @@
 # INPUT VARIABLES
 # ---
 
-variable "aws_region" {
+variable aws_region {
     description = "AWS region"
-    type        = "string"
+    type        = string
     default     = "eu-west-3"
 }
 
-variable "vpc_name" {
+variable vpc_name {
     description = "VPC name"
-    type        = "string"
+    type        = string
     default     = "demo"
 }
 
-variable "vpc_cidr" {
+variable vpc_cidr {
     description = "VPC cidr block"
-    type        = "string"
+    type        = string
     default     = "10.0.0.0/16"
 }
 

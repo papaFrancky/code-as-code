@@ -3,14 +3,14 @@
 
 variable "vpc_name" {
     description = "VPC name"
-    type        = "string"
+    type        = string
     default     = "demo"
 }
 
 
 variable "aws_region" {
     description = "AWS region"
-    type        = "string"
+    type        = string
     default     = "eu-west-3"
 }
 
@@ -31,6 +31,6 @@ variable "ssh_key" {
 
 variable "http_port" {
     description = "HTTP port"
-    type        = "string"
+    type        = string
     default     = 80
 }
